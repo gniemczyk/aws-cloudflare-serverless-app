@@ -1,0 +1,170 @@
+# ============================================
+#  GLOBALNE PLIKI UKRYTE – BEZPIECZNE WYJĄTKI
+# ============================================
+.*
+!.gitignore
+!.gitattributes
+!.github/
+!.gitlab-ci.yml
+!.circleci/
+!.azure-pipelines.yml
+!.well-known/
+!.editorconfig
+!.dockerignore
+!.pre-commit-config.yaml
+!.tflint.hcl
+!.node-version
+!.nvmrc
+!.tool-versions
+!.prettierrc
+!.prettierrc.*
+!.eslintrc
+!.eslintrc.*
+!.yamllint*
+!.ansible-lint*
+!.hadolint.yaml
+!.renovate.json
+!.renovate.json5
+!.dependabot.yml
+
+# ============================================
+#  TERRAFORM / TERRAGRUNT / OPEN TOFU
+# ============================================
+.terraform/
+.terraform.*
+.terragrunt-cache/
+.tofu/
+.tofu.*
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
+*.hcl.backup
+crash.log
+terraform.rc
+.terraformrc
+
+# ZALECANE: trzymać w repo
+!.terraform.lock.hcl
+!.tofu.lock.hcl
+
+# ============================================
+#  AWS / CLOUDFLARE / SERVERLESS
+# ============================================
+.aws/
+.aws-sam/
+.elasticbeanstalk/
+.serverless/
+.wrangler/
+.dev.vars
+.next/
+out/
+
+# ============================================
+#  SEKRETY I KLUCZE
+# ============================================
+.env
+.env.*
+*.env
+*.pem
+*.key
+*.pub
+*.crt
+*.pfx
+*.p12
+*.kubeconfig
+*.tfbackend
+*.age
+.sops.yaml
+*.sops.*
+
+# ============================================
+#  DOCKER / KONTENERY
+# ============================================
+docker-compose.override.yml
+*.tar
+
+# ============================================
+#  BACKEND – PHP
+# ============================================
+vendor/
+composer.phar
+.phpunit.result.cache
+.php-cs-fixer.cache
+
+# ============================================
+#  BACKEND – PYTHON
+# ============================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+pip-wheel-metadata/
+
+# ============================================
+#  BACKEND – GO
+# ============================================
+bin/
+*.exe
+*.out
+
+# ============================================
+#  BACKEND – JAVA
+# ============================================
+target/
+*.jar
+*.war
+*.ear
+
+# ============================================
+#  FRONTEND / NODE
+# ============================================
+node_modules/
+dist/
+build/
+.npm/
+.pnpm-store/
+.pnp.*
+.cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.eslintcache
+
+# ============================================
+#  LOGI / CACHE / ARTEFAKTY
+# ============================================
+*.log
+logs/
+cache/
+storage/
+temp/
+tmp/
+coverage/
+reports/
+junit.xml
+lcov.info
+
+# ============================================
+#  SYSTEMOWE ŚMIECI
+# ============================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ============================================
+#  IDE / EDITORS
+# ============================================
+.vscode/
+.idea/
+*.iml
+*.swp
+*.swo
+.project
+.settings/
+*.orig
+*.bak
+

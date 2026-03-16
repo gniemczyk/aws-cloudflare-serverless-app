@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="pl">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>DevOps Business Cards</title>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <link
+            rel="stylesheet"
+            href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        />
+        <style>
+            .card-gradient {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            }
+            .modal {
+                transition: opacity 0.25s ease;
+            }
+            body.modal-active {
+                overflow-x: hidden;
+                overflow-y: visible !important;
+            }
+        </style>
+    </head>
+    <body class="bg-gray-50 min-h-screen">
+        <nav class="bg-white shadow-sm sticky top-0 z-10 p-4">
+            <div
+                class="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4"
+            >
+                <h1
+                    class="text-2xl font-bold text-indigo-600 cursor-pointer"
+                    onclick="fetchUsers()"
+                >
+                    <i class="fas fa-address-card mr-2"></i>DevOps Cards
+                </h1>
+
+                <div class="flex flex-1 w-full md:w-auto gap-2">
+                    <div class="relative flex-1">
+                        <input
+                            type="text"
+                            id="searchInput"
+                            placeholder="Szukaj po nazwisku lub roli..."
+                            class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-400 focus:outline-none shadow-sm"
+                        />
+                        <i
+                            class="fas fa-search absolute left-3 top-3 text-gray-400"
+                        ></i>
+                    </div>
+                    <button
+                        onclick="toggleModal()"
+                        class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-bold transition-colors shadow-sm"
+                    >
+                        <i class="fas fa-plus"></i>
+                        <span class="hidden sm:inline ml-1">Dodaj</span>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <div
+            id="modal"
+            class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50"
+        >
+            <div
+                class="modal-overlay absolute w-full h-full bg-gray-900 opacity-50"
+            ></div>
+            <div
+                class="modal-container bg-white w-11/12 md:max-w-md mx-auto rounded shadow-lg z-50 overflow-y-auto"
+            >
+                <div class="modal-content py-4 text-left px-6">
+                    <div class="flex justify-between items-center pb-3">
+                        <p class="text-2xl font-bold text-gray-800">
+                            Nowa wizytówka
+                        </p>
+                        <div
+                            class="modal-close cursor-pointer z-50"
+                            onclick="toggleModal()"
+                        >
+                            <i class="fas fa-times text-gray-500"></i>
+                        </div>
+                    </div>
+                    <form id="addForm" class="space-y-4">
+                        <input
+                            type="email"
+                            name="email"
+                            placeholder="Email (wymagane)"
+                            required
+                            class="w-full p-2 border rounded"
+                        />
+                        <input
+                            type="text"
+                            name="name"
+                            placeholder="Imię"
+                            class="w-full p-2 border rounded"
+                        />
+                        <input
+                            type="text"
+                            name="surname"
+                            placeholder="Nazwisko"
+                            class="w-full p-2 border rounded"
+                        />
+                        <input
+                            type="text"
+                            name="company"
+                            placeholder="Firma"
+                            class="w-full p-2 border rounded"
+                        />
+                        <input
+                            type="text"
+                            name="role"
+                            placeholder="Rola (np. Cloud Architect)"
+                            class="w-full p-2 border rounded"
+                        />
+                        <button
+                            type="submit"
+                            class="w-full bg-indigo-600 text-white py-2 rounded font-bold hover:bg-indigo-700 transition"
+                        >
+                            Zapisz wizytówkę
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <main class="max-w-6xl mx-auto p-6">
+            <div id="loader" class="flex justify-center items-center py-20">
+                <div
+                    class="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"
+                ></div>
+            </div>
+            <div
+                id="cardsGrid"
+                class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 hidden"
+            ></div>
+            <div id="noResults" class="hidden text-center py-20">
+                <i class="fas fa-user-slash text-5xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500 text-xl">Nie znaleziono wizytówek...</p>
+            </div>
+        </main>
+
+        <script>
+            const BASE_URL = "https://devops-cards-api.safedevzone.pl";
+            let allUsers = [];
+
+            // Pobieranie danych z obsługą błędów (503, 404, etc.)
+            async function fetchUsers() {
+                const loader = document.getElementById("loader");
+                const grid = document.getElementById("cardsGrid");
+                const noResults = document.getElementById("noResults");
+
+                loader.classList.remove("hidden");
+                grid.classList.add("hidden");
+                noResults.classList.add("hidden");
+
+                try {
+                    const response = await fetch(`${BASE_URL}/getuser`);
+
+                    // Jeśli status nie jest OK (np. 503), pobierz JSON i wywal alert
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        alert(
+                            `Błąd API (${response.status}):\n${JSON.stringify(errorData)}`,
+                        );
+
+                        // Ukryj loader i pokaż stan "brak wyników"
+                        loader.classList.add("hidden");
+                        noResults.classList.remove("hidden");
+                        return;
+                    }
+
+                    allUsers = await response.json();
+                    renderCards(allUsers);
+                } catch (error) {
+                    console.error("Błąd sieci lub parsowania:", error);
+                    alert(
+                        "Nie udało się połączyć z API. Sprawdź połączenie lub status usługi.",
+                    );
+                } finally {
+                    loader.classList.add("hidden");
+                }
+            }
+
+            // Usuwanie użytkownika
+            async function deleteUser(email) {
+                if (!confirm(`Czy na pewno usunąć wizytówkę: ${email}?`))
+                    return;
+
+                try {
+                    const response = await fetch(
+                        `${BASE_URL}/deleteuser/${email}`,
+                        { method: "DELETE" },
+                    );
+                    const result = await response.json();
+                    alert(JSON.stringify(result));
+                    fetchUsers();
+                } catch (error) {
+                    alert("Błąd podczas usuwania");
+                }
+            }
+
+            // Dodawanie użytkownika
+            document
+                .getElementById("addForm")
+                .addEventListener("submit", async (e) => {
+                    e.preventDefault();
+                    const formData = new FormData(e.target);
+                    const data = Object.fromEntries(formData.entries());
+
+                    try {
+                        const response = await fetch(`${BASE_URL}/adduser`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(data),
+                        });
+                        const result = await response.json();
+                        alert(JSON.stringify(result));
+                        toggleModal();
+                        e.target.reset();
+                        fetchUsers();
+                    } catch (error) {
+                        alert("Błąd podczas dodawania");
+                    }
+                });
+
+            function renderCards(users) {
+                const grid = document.getElementById("cardsGrid");
+                const noResults = document.getElementById("noResults");
+                grid.innerHTML = "";
+
+                if (users.length === 0) {
+                    grid.classList.add("hidden");
+                    noResults.classList.remove("hidden");
+                    return;
+                }
+
+                noResults.classList.add("hidden");
+                grid.classList.remove("hidden");
+
+                users.forEach((user) => {
+                    grid.innerHTML += `
+                            <div class="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow border border-gray-100 relative group">
+                                <button onclick="deleteUser('${user.CardID}')" class="absolute top-4 right-4 text-gray-300 hover:text-red-500 transition-colors z-10">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                <div class="card-gradient h-2"></div>
+                                <div class="p-6">
+                                    <div class="flex items-center mb-4">
+                                        <div class="bg-indigo-100 text-indigo-600 rounded-full p-3 mr-4"><i class="fas fa-user text-xl"></i></div>
+                                        <div>
+                                            <h3 class="text-xl font-bold text-gray-800">${user.Name} ${user.Surname}</h3>
+                                            <p class="text-sm text-indigo-600 font-semibold uppercase tracking-wider">${user.Role || "DevOps"}</p>
+                                        </div>
+                                    </div>
+                                    <div class="space-y-2 text-gray-600">
+                                        <div class="flex items-center"><i class="fas fa-building w-6 text-gray-400"></i><span>${user.Company || "Niezależny"}</span></div>
+                                        <div class="flex items-center"><i class="fas fa-envelope w-6 text-gray-400"></i><span class="text-sm truncate">${user.CardID}</span></div>
+                                    </div>
+                                    <button onclick="window.location.href='mailto:${user.CardID}'" class="mt-6 w-full bg-gray-50 hover:bg-indigo-600 hover:text-white text-indigo-600 font-bold py-2 rounded-lg transition-colors border border-indigo-100">
+                                        Kontakt
+                                    </button>
+                                </div>
+                            </div>`;
+                });
+            }
+
+            function toggleModal() {
+                const modal = document.getElementById("modal");
+                modal.classList.toggle("opacity-0");
+                modal.classList.toggle("pointer-events-none");
+                document.body.classList.toggle("modal-active");
+            }
+
+            document
+                .getElementById("searchInput")
+                .addEventListener("input", (e) => {
+                    const term = e.target.value.toLowerCase();
+                    const filtered = allUsers.filter(
+                        (u) =>
+                            `${u.Name} ${u.Surname}`
+                                .toLowerCase()
+                                .includes(term) ||
+                            (u.Role && u.Role.toLowerCase().includes(term)),
+                    );
+                    renderCards(filtered);
+                });
+
+            fetchUsers();
+        </script>
+    </body>
+</html>

@@ -1,0 +1,76 @@
+name: "Wdrożenie Infrastruktury AWS & Cloudflare"
+
+on:
+  push:
+    paths:
+      - "terraform/**"
+    branches:
+      - main
+
+jobs:
+  terraform:
+    name: "Terraform Apply"
+    runs-on: ubuntu-latest
+    env:
+      TF_LOG: INFO
+      # Kredencjały automatycznie wykrywane przez Providerów (bez TF_VAR)
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      # Zmienne dla skryptów bash (S3 Backend)
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      STATE_BUCKET_NAME: ${{ vars.STATE_BUCKET_NAME }}
+
+      # Zmienne wstrzykiwane do kodu Terraforma (wymagają TF_VAR)
+      TF_VAR_cloudflare_zone_id: ${{ secrets.CLOUDFLARE_ZONE_ID }}
+      TF_VAR_aws_region: ${{ vars.AWS_REGION }}
+      TF_VAR_main_domain: ${{ vars.MAIN_DOMAIN }}
+      TF_VAR_sub_domain: ${{ vars.SUB_DOMAIN }}
+      TF_VAR_sub_domain_api: ${{ vars.SUB_DOMAIN_API }}
+      TF_VAR_db_name: ${{ vars.DB_NAME }}
+      TF_VAR_db_hash_key: ${{ vars.DB_HASH_KEY }}
+      TF_VAR_alert_email: ${{ vars.ALERT_EMAIL }}
+
+    steps:
+      - name: "Pobranie kodu z repozytorium"
+        uses: actions/checkout@v4
+
+      - name: "Wstrzykiwanie nazwy bucketu do providers.tf"
+        run: |
+          sed -i "s/REPLACE_ME_STATE_BUCKET_NAME/${{ env.STATE_BUCKET_NAME }}/g" terraform/providers.tf
+
+      - name: "Zapewnienie istnienia bucketu na stan (S3 Backend)"
+        run: |
+          if ! aws s3api head-bucket --bucket "${{ env.STATE_BUCKET_NAME }}" 2>/dev/null; then
+            aws s3 mb s3://${{ env.STATE_BUCKET_NAME }} --region ${{ env.AWS_REGION }}
+            aws s3api put-bucket-versioning --bucket ${{ env.STATE_BUCKET_NAME }} --versioning-configuration Status=Enabled
+          fi
+
+      - name: "Instalacja i konfiguracja Terraforma"
+        uses: hashicorp/setup-terraform@v3
+
+      - name: "Terraform Init & Apply"
+        id: apply
+        run: |
+          terraform init
+          terraform apply -auto-approve -input=false
+        working-directory: ./terraform
+
+      - name: "Pobranie ARN tematu SNS"
+        id: get_sns
+        if: success()
+        run: |
+          # Wyciągamy ARN i usuwamy ewentualne cudzysłowy
+          TOPIC_ARN=$(terraform output -raw sns_topic_arn)
+          echo "topic_arn=$TOPIC_ARN" >> $GITHUB_OUTPUT
+        working-directory: ./terraform
+
+      - name: "Wysłanie powiadomienia o sukcesie"
+        if: success()
+        run: |
+          aws sns publish \
+            --topic-arn "${{ steps.get_sns.outputs.topic_arn }}" \
+            --subject "Sukces: Infrastruktura gotowa" \
+            --message "Infrastruktura dla ${{ vars.SUB_DOMAIN }}.${{ vars.MAIN_DOMAIN }} została pomyślnie zaktualizowana przez GitHub Actions." \
+            --region us-east-1
