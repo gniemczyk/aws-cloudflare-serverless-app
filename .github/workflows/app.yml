@@ -81,5 +81,5 @@ jobs:
           aws sns publish \
             --topic-arn "$TOPIC_ARN" \
             --subject "Sukces: Aplikacja wdrożona" \
-            --message "Nowa wersja kodu (Lambda & Frontend) została pomyślnie wdrożona na środowisko $SUB_DOMAIN.$MAIN_DOMAIN." \
+            --message "Wersja kodu (Lambda & Frontend) została pomyślnie wdrożona na środowisko $SUB_DOMAIN.$MAIN_DOMAIN." \
             --region "$AWS_REGION"
