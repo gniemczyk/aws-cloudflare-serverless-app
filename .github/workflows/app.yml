@@ -38,7 +38,7 @@ jobs:
           aws lambda update-function-code \
             --function-name "$FUNCTION_NAME" \
             --zip-file fileb://lambda.zip \
-            --region ${{ env.AWS_REGION }}
+            --region "$AWS_REGION"
 
   deploy-frontend:
     name: "Deploy Frontend S3"
@@ -48,7 +48,9 @@ jobs:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ vars.AWS_REGION }}
-      BUCKET_NAME: "${{ vars.SUB_DOMAIN }}.${{ vars.MAIN_DOMAIN }}"
+      SUB_DOMAIN: ${{ vars.SUB_DOMAIN }}
+      MAIN_DOMAIN: ${{ vars.MAIN_DOMAIN }}
+      BUCKET_NAME: ${{ vars.SUB_DOMAIN }}.${{ vars.MAIN_DOMAIN }}
 
     steps:
       - name: "Pobranie kodu"
@@ -62,16 +64,22 @@ jobs:
 
       - name: "Wysyłka plików na S3"
         run: |
-          aws s3 sync app/frontend/ s3://${{ env.BUCKET_NAME }} --delete --region ${{ env.AWS_REGION }}
+          aws s3 sync app/frontend/ s3://$BUCKET_NAME --delete --region "$AWS_REGION"
 
       - name: "Powiadomienie o sukcesie aplikacji"
         if: success()
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          SUB_DOMAIN: ${{ vars.SUB_DOMAIN }}
+          MAIN_DOMAIN: ${{ vars.MAIN_DOMAIN }}
         run: |
-          # Pobieramy ARN tematu SNS na podstawie nazwy zdefiniowanej w Terraformie
-          TOPIC_ARN=$(aws sns list-topics --query "Topics[?contains(TopicArn, 'devops-cards-alerts')].TopicArn" --output text --region us-east-1)
+          TOPIC_ARN=$(aws sns list-topics \
+            --query "Topics[?contains(TopicArn, 'devops-alerts')].TopicArn" \
+            --output text \
+            --region "$AWS_REGION")
 
           aws sns publish \
             --topic-arn "$TOPIC_ARN" \
             --subject "Sukces: Aplikacja wdrożona" \
-            --message "Nowa wersja kodu (Lambda & Frontend) została pomyślnie wdrożona na środowisko ${{ vars.SUB_DOMAIN }}.${{ vars.MAIN_DOMAIN }}." \
-            --region us-east-1
+            --message "Nowa wersja kodu (Lambda & Frontend) została pomyślnie wdrożona na środowisko $SUB_DOMAIN.$MAIN_DOMAIN." \
+            --region "$AWS_REGION"
