@@ -9,5 +9,5 @@ output "api_url" {
 
 output "sns_topic_arn" {
   description = "ARN tematu SNS dla powiadomień"
-  value       = aws_sns_topic.alerts_topic.arn
+  value       = aws_sns_topic.alerts_topic_eu.arn
 }

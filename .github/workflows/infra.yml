@@ -1,19 +1,10 @@
-name: "Wdrożenie Infrastruktury AWS & Cloudflare"
-
-on:
-  push:
-    paths:
-      - "terraform/**"
-    branches:
-      - main
-
 jobs:
   terraform:
     name: "Terraform Apply"
     runs-on: ubuntu-latest
     env:
       TF_LOG: INFO
-      # Kredencjały automatycznie wykrywane przez Providerów (bez TF_VAR)
+
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -36,10 +27,6 @@ jobs:
       - name: "Pobranie kodu z repozytorium"
         uses: actions/checkout@v4
 
-      - name: "Wstrzykiwanie nazwy bucketu do providers.tf"
-        run: |
-          sed -i "s/REPLACE_ME_STATE_BUCKET_NAME/${{ env.STATE_BUCKET_NAME }}/g" terraform/providers.tf
-
       - name: "Zapewnienie istnienia bucketu na stan (S3 Backend)"
         run: |
           if ! aws s3api head-bucket --bucket "${{ env.STATE_BUCKET_NAME }}" 2>/dev/null; then
@@ -50,10 +37,17 @@ jobs:
       - name: "Instalacja i konfiguracja Terraforma"
         uses: hashicorp/setup-terraform@v3
 
-      - name: "Terraform Init & Apply"
+      - name: "Terraform Init"
+        run: |
+          terraform init \
+            -backend-config="bucket=${{ env.STATE_BUCKET_NAME }}" \
+            -backend-config="region=${{ env.AWS_REGION }}" \
+            -backend-config="key=state/terraform.tfstate"
+        working-directory: ./terraform
+
+      - name: "Terraform Apply"
         id: apply
         run: |
-          terraform init
           terraform apply -auto-approve -input=false
         working-directory: ./terraform
 
@@ -61,7 +55,6 @@ jobs:
         id: get_sns
         if: success()
         run: |
-          # Wyciągamy ARN i usuwamy ewentualne cudzysłowy
           TOPIC_ARN=$(terraform output -raw sns_topic_arn)
           echo "topic_arn=$TOPIC_ARN" >> $GITHUB_OUTPUT
         working-directory: ./terraform
@@ -73,4 +66,4 @@ jobs:
             --topic-arn "${{ steps.get_sns.outputs.topic_arn }}" \
             --subject "Sukces: Infrastruktura gotowa" \
             --message "Infrastruktura dla ${{ vars.SUB_DOMAIN }}.${{ vars.MAIN_DOMAIN }} została pomyślnie zaktualizowana przez GitHub Actions." \
-            --region us-east-1
+            --region ${{ vars.AWS_REGION }}

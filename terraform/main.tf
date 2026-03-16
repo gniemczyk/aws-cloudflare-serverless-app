@@ -211,7 +211,7 @@ resource "cloudflare_record" "api_cname" {
 
 # --- 7. MONITORING: CLOUDWATCH DASHBOARD ---
 resource "aws_cloudwatch_dashboard" "main_dashboard" {
-  dashboard_name = "DevOps_Cards_Monitoring"
+  dashboard_name = "DevOps_Monitoring"
 
   dashboard_body = jsonencode({
     widgets = [
@@ -279,11 +279,11 @@ resource "aws_cloudwatch_dashboard" "main_dashboard" {
 # Temat powiadomień (kanał, na który będą wysyłane info)
 resource "aws_sns_topic" "alerts_topic" {
   provider = aws.us_east_1
-  name = "devops-cards-alerts"
+  name = "devops-alerts"
 }
 
 resource "aws_sns_topic" "alerts_topic_eu" {
-  name = "devops-cards-alerts-eu"
+  name = "devops-alerts-eu"
 }
 
 # Subskrypcja dla US

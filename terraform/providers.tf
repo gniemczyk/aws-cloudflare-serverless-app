@@ -12,9 +12,9 @@ terraform {
 
   # Konfiguracja Backend S3 z placeholderem
   backend "s3" {
-    bucket  = "REPLACE_ME_STATE_BUCKET_NAME"
-    key     = "state/terraform.tfstate"
-    region  = "eu-central-1"
+    bucket  = "placeholder"
+    key     = "placeholder"
+    region  = "placeholder"
     encrypt = true
   }
 }
